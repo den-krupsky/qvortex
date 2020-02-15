@@ -24,12 +24,7 @@ class SimpleDatabaseStorageTest {
 
     @BeforeEach
     void setUp() {
-        flyway.migrate();
-    }
-
-    @AfterAll
-    static void release() {
-        flyway.clean();
+        quotes.clean();
     }
 
     @AfterEach
@@ -37,6 +32,11 @@ class SimpleDatabaseStorageTest {
         quotes.clean();
     }
 
+    @AfterAll
+    static void release() {
+        flyway.clean();
+    }
+    
     @Test
     void addQuotes() {
         final int count = 100;
