@@ -1,19 +1,12 @@
 import org.flywaydb.core.Flyway;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import util.TestingDatabase;
 
 import javax.sql.DataSource;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class SimpleDatabaseStorageTest {
 
@@ -25,47 +18,60 @@ class SimpleDatabaseStorageTest {
         DataSource ds = TestingDatabase.getPostgresDataSource();
         flyway = Flyway.configure().dataSource(ds).load();
         flyway.clean();
+        flyway.migrate();
         quotes = new SimpleDatabaseStorage(ds);
     }
 
     @BeforeEach
     void setUp() {
-        System.out.println("Before each");
         flyway.migrate();
     }
 
-    private List<Quote> generate(int count) {
-        if (count < 1) throw new IllegalArgumentException("count 1 and higher");
-        int basic = 10;
-        int step = 200;
-        long point = System.currentTimeMillis();
-
-        List<Quote> generated = new ArrayList<>(count);
-        for (int i = count; i > 0; i--) {
-            Instant time = Instant.ofEpochMilli(point - i * step);
-            Float value = basic + ThreadLocalRandom.current().nextFloat() * (basic / 2);
-            Quote quote = new Quote(time, value);
-            generated.add(quote);
-        }
-        return generated;
-    }
-
-    @Test
-    void addAndGetQuotes() {
-        List<Quote> input = generate(10);
-        quotes.addQuotes(input.stream());
-
-        List<Quote> quoteList = quotes.getQuotes().collect(Collectors.toList());
-
-        System.out.println("Input: " + input.toString());
-        System.out.println("Output: " + quoteList.toString());
-
-        assertArrayEquals(input.toArray(), quoteList.toArray());
+    @AfterAll
+    static void release() {
+        flyway.clean();
     }
 
     @AfterEach
     void tearDown() {
-        //flyway.clean();
-        System.out.println("After each");
+        quotes.clean();
     }
+
+    @Test
+    void addQuotes() {
+        final int count = 100;
+
+        quotes.addQuotes(QuoteSequence.generate(count));
+
+        assertEquals(count, quotes.total(), "Storage contains not all elements from input");
+    }
+
+    @Test
+    void getQuotes() {
+        final int count = 78;
+        quotes.addQuotes(QuoteSequence.generate(count));
+
+        Stream<Quote> result = SimpleDatabaseStorageTest.quotes.getQuotes();
+        assertNotNull(result, "Result is null");
+        assertEquals(count, result.count(), "Was added to empty storage: " + count);
+    }
+
+    @Test
+    void total() {
+        final int count = 1763;
+        quotes.addQuotes(QuoteSequence.generate(count));
+
+        assertEquals(count, quotes.total(), "Quotes count not equal to count of the writing data");
+    }
+
+    @Test
+    void clean() {
+        final int count = 50;
+        quotes.addQuotes(QuoteSequence.generate(count));
+
+        quotes.clean();
+
+        assertEquals(0, quotes.total(), "Storage must be is empty");
+    }
+
 }

@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -44,5 +45,17 @@ public class SimpleDatabaseStorage implements QuoteStorage {
         RowMapper<Quote> rowMapper = (rs, rwnIgnore) -> new Quote(rs.getTimestamp("time").toInstant(), rs.getFloat("value"));
 
         return this.jdbcTemplate.query(selectAll, rowMapper).stream();
+    }
+
+    @Override
+    public long total() {
+        Long count = this.jdbcTemplate.queryForObject("SELECT count(*) FROM quote", Long.class);
+        return Objects.requireNonNull(count, "count is null");
+    }
+
+    @Override
+    public void clean() {
+        String truncate = "TRUNCATE TABLE quote";
+        this.jdbcTemplate.execute(truncate);
     }
 }
