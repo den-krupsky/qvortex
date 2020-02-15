@@ -15,9 +15,9 @@ import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class QuotesTest {
+class SimpleDatabaseStorageTest {
 
-    private static Quotes quotes;
+    private static SimpleDatabaseStorage quotes;
     private static Flyway flyway;
 
     @BeforeAll
@@ -28,7 +28,7 @@ class QuotesTest {
         Stream.of(flyway.getConfiguration().getLocations())
                 .forEach(System.out::println);
         flyway.clean();
-        quotes = new Quotes(ds);
+        quotes = new SimpleDatabaseStorage(ds);
     }
 
     @BeforeEach
@@ -37,27 +37,32 @@ class QuotesTest {
         flyway.migrate();
     }
 
-    @Test
-    void getQuotes() {
+    private List<Quote> generate(int count) {
+        if (count < 1) throw new IllegalArgumentException("count 1 and higher");
         int basic = 10;
-        int count = 10;
         int step = 200;
         long point = System.currentTimeMillis();
 
-        List<Quote> input = new ArrayList<>(count);
+        List<Quote> generated = new ArrayList<>(count);
         for (int i = count; i > 0; i--) {
             Instant time = Instant.ofEpochMilli(point - i * step);
             Float value = basic + ThreadLocalRandom.current().nextFloat() * (basic / 2);
             Quote quote = new Quote(time, value);
-            input.add(quote);
+            generated.add(quote);
         }
+        return generated;
+    }
 
+    @Test
+    void addAndGetQuotes() {
+        List<Quote> input = generate(10);
         quotes.addQuotes(input.stream());
 
         List<Quote> quoteList = quotes.getQuotes().collect(Collectors.toList());
 
         System.out.println("Input: " + input.toString());
         System.out.println("Output: " + quoteList.toString());
+
         assertArrayEquals(input.toArray(), quoteList.toArray());
     }
 
