@@ -23,10 +23,7 @@ class SimpleDatabaseStorageTest {
     @BeforeAll
     static void init() {
         DataSource ds = TestingDatabase.getPostgresDataSource();
-        String contentPath = "src/main/resources/db/migration";
         flyway = Flyway.configure().dataSource(ds).load();
-        Stream.of(flyway.getConfiguration().getLocations())
-                .forEach(System.out::println);
         flyway.clean();
         quotes = new SimpleDatabaseStorage(ds);
     }
